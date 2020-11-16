@@ -8,3 +8,8 @@
 - 差量更新源码
 - 更好的Readme
 - 更好的Config方式
+
+
+## 使用方法
+
+更改`settings.py`中`EMAIL`与`PASSWORD`为自己的邮箱与密码，`CODE_PATH`为保存代码目录

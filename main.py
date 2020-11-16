@@ -1,6 +1,7 @@
 from LeetcodeSpider import LeetcodeSpider
+from settings import EMAIL, PASSWORD, CODE_PATH
 
 l = LeetcodeSpider()
-l.login("email", "password")
+l.login(EMAIL, PASSWORD)
 l.getsubmissions()
-l.getcodes('submissions')
+l.getcodes(CODE_PATH)
