@@ -1,7 +1,9 @@
+from logging import log
 import requests
 import json
 from time import sleep
 import os
+import logging
 
 class LeetcodeSpider():
     headers = {
@@ -9,10 +11,11 @@ class LeetcodeSpider():
         'origin': 'https://leetcode-cn.com'
     }
 
-    def __init__(self) -> None:
+    def __init__(self, *, log_level = logging.INFO) -> None:
         self.session = requests.Session()
         self.is_login = False
         self.csrftoken = ''
+        logging.basicConfig(level=log_level, format='%(asctime)s - %(filename)s[line:%(lineno)d] - %(levelname)s: %(message)s')
 
     def login(self, email: str, password: str) -> bool:
         """登录账号"""
@@ -26,11 +29,11 @@ class LeetcodeSpider():
 
         is_login = self.session.cookies.get('LEETCODE_SESSION') != None
         if is_login:
-            print("Login successfully!")
+            logging.info("登录成功")
             self.is_login = True
             return True
         else:
-            print("Login failed!")
+            logging.error("登录失败")
             return False
 
     def getsubmissions(self) -> None:
@@ -45,6 +48,8 @@ class LeetcodeSpider():
         submission_names = set()
 
         cnt = 0
+
+        logging.info('开始获取提交记录')
 
         while True:
             rep = self.session.get(
@@ -63,12 +68,14 @@ class LeetcodeSpider():
                         'title': submission['title'],
                         'url': submission['url']
                     })
+            logging.debug(f'获取到{len(self.submissions)}条记录')
             if not rep_json['has_next']:
                 break
             sleep(1)
-        print(f"共获取到{len(self.submissions)}条AC记录")
+        logging.info(f"共获取到{len(self.submissions)}条AC记录")
 
     def getcodes(self, dir: str):
+        """下载代码"""
         self.session.get("https://leetcode-cn.com")
         csrftoken = ''
         for cookie in self.session.cookies:
@@ -124,7 +131,11 @@ class LeetcodeSpider():
             'x-timezone': 'Asia/Shanghai',
             'Content-Type': 'application/json'
         }
-        os.mkdir(dir)
+        logging.debug(f'创建{dir}目录')
+        try:
+            os.mkdir(dir)
+        except FileExistsError:
+            logging.debug(f'{dir}目录已经存在')
         os.chdir(dir)
         for submission in self.submissions:
             
@@ -137,7 +148,7 @@ class LeetcodeSpider():
                 with open(req_json['question']['titleSlug'] + '.py', 'w') as f:
                     f.write(req_json['code'])
             except:
-                print(f"获取{submission['title']}出错啦！")
+                logging.warning(f"获取{submission['title']}出错啦！")
                 continue
-            print(f"获取{submission['title']}")
+            logging.info(f"获取{submission['title']}")
             sleep(1)

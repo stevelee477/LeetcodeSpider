@@ -1,3 +1,4 @@
+import logging
 from LeetcodeSpider import LeetcodeSpider
 from settings import EMAIL, PASSWORD, CODE_PATH
 
