@@ -137,7 +137,7 @@ class LeetcodeSpider():
         except FileExistsError:
             logging.debug(f'{dir}目录已经存在')
         os.chdir(dir)
-        for submission in self.submissions:
+        for i, submission in enumerate(self.submissions):
             
             data['variables']['id'] = submission['id']
             req = self.session.post("https://leetcode-cn.com/graphql/", data=json.dumps(data), headers=headers)
@@ -145,10 +145,20 @@ class LeetcodeSpider():
                 return
             req_json = json.loads(req.content.decode('utf-8'))['data']['submissionDetail']
             try:
-                with open(req_json['question']['titleSlug'] + '.py', 'w') as f:
+                lang = req_json['lang']
+                suffix = ''
+                m = {
+                    'python3': '.py',
+                    'python2': '.py',
+                    'java': '.java',
+                    'c++': '.cpp',
+                    'javascript': '.js',
+                    'c': '.c',
+                }
+                with open(req_json['question']['titleSlug'] + m[lang], 'w') as f:
                     f.write(req_json['code'])
             except:
                 logging.warning(f"获取{submission['title']}出错啦！")
                 continue
-            logging.info(f"获取{submission['title']}")
+            logging.info(f"获取{submission['title']} {(i+1)/len(self.submissions)}")
             sleep(1)
