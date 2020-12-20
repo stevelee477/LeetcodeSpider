@@ -11,10 +11,11 @@ class LeetcodeSpider():
         'origin': 'https://leetcode-cn.com'
     }
 
-    def __init__(self, *, log_level = logging.INFO) -> None:
+    def __init__(self, *, submission_file='submission.json', log_level = logging.INFO) -> None:
         self.session = requests.Session()
         self.is_login = False
         self.csrftoken = ''
+        self.submission_file = submission_file
         logging.basicConfig(level=log_level, format='%(asctime)s - %(filename)s[line:%(lineno)d] - %(levelname)s: %(message)s')
 
     def login(self, email: str, password: str) -> bool:
@@ -46,6 +47,15 @@ class LeetcodeSpider():
 
         self.submissions = list()
         submission_names = set()
+        start_timestamp = 0
+        prev_submissions = list()
+
+        try:
+            with open(self.submission_file, 'r') as f:
+                prev_submissions = json.load(f)
+            start_timestamp = prev_submissions[0]['timestamp']
+        except FileNotFoundError or IndexError:
+            logging.info(f'创建{self.submission_file}')
 
         cnt = 0
 
@@ -59,19 +69,28 @@ class LeetcodeSpider():
             rep_json = json.loads(rep.content.decode('utf-8'))
 
             cnt += len(rep_json['submissions_dump'])
-
+            time_flag = False
             for submission in rep_json['submissions_dump']:
+                if submission['timestamp'] <= start_timestamp:
+                    time_flag = True
+                    break
                 if submission['title'] not in submission_names and submission['status_display'] == 'Accepted':
                     submission_names.add(submission['title'])
                     self.submissions.append({
                         'id': submission['id'],
                         'title': submission['title'],
-                        'url': submission['url']
+                        'url': submission['url'],
+                        'timestamp': submission['timestamp']
                     })
             logging.debug(f'获取到{len(self.submissions)}条记录')
-            if not rep_json['has_next']:
+            if not rep_json['has_next'] or time_flag:
                 break
             sleep(1)
+        
+        with open(self.submission_file, 'w') as f:
+            submissions = prev_submissions + self.submissions
+            submissions.sort(key=lambda x: x['timestamp'], reverse=True)
+            json.dump(submissions, f)
         logging.info(f"共获取到{len(self.submissions)}条AC记录")
 
     def getcodes(self, dir: str):
@@ -146,7 +165,6 @@ class LeetcodeSpider():
             req_json = json.loads(req.content.decode('utf-8'))['data']['submissionDetail']
             try:
                 lang = req_json['lang']
-                suffix = ''
                 m = {
                     'python3': '.py',
                     'python2': '.py',
